@@ -87,7 +87,7 @@ This project extends beyond standard algorithmic implementation, demonstrating s
 ---
 
 ### 6. Extensions
-To evolve this engine from an academic project into an enterprise-grade utility, we propose the following architectural extensions:
+To evolve this engine we propose the following architectural extensions:
 
 * **$O(1)$ Space Complexity via Chunking:** The current $636$ MB RAM bottleneck can be resolved by implementing Block-Level Streaming. By reading, compressing, and flushing data in independent $64$ KB chunks, the engine's memory footprint becomes $O(1)$ (constant), allowing it to process multi-gigabyte files (e.g., 4K videos or database dumps) even on low-RAM IoT devices.
 * **API & IoT Optimization (Static Trees):** To solve the micro-file negative saving issue, we can implement an option to use a pre-calculated, hardcoded Static Huffman Tree. This eliminates the header overhead entirely, making the engine highly efficient for tiny JSON payloads in REST APIs.
