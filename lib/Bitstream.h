@@ -40,7 +40,7 @@ void closeOutStream(OutBitStream &stream); // Đóng file ghi an toàn
 
 int readBit(InBitStream &stream); // Đọc 1 bit
 
-unsigned int readBits(InBitStream &stream, int length); // Đọc nhiều bit
+int readBits(InBitStream &stream, int length); // Đọc nhiều bit
 
 void closeInStream(InBitStream &stream); // Đóng file
 
