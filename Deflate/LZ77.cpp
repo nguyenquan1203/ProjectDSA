@@ -3,45 +3,48 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-// Hàm nén LZ77
 #include <iostream>
-std::vector<Token> lz77_compress(
-    const std::string &s,
-    uint16_t windowSize,
-    uint16_t maxMatchLen)
+inline uint32_t hash3(const std::string &s, int i)
 {
-    const int n = static_cast<int>(s.size());
-    std::vector<Token> tokens;
-    std::unordered_map<std::string, std::vector<int>> index;
+    uint8_t c1 = (uint8_t)s[i];
+    uint8_t c2 = (uint8_t)s[i + 1];
+    uint8_t c3 = (uint8_t)s[i + 2];
 
+    // Dịch bit và XOR để tạo mã băm rải đều trong khoảng 0 -> 65535
+    return ((c1 << 10) ^ (c2 << 5) ^ c3) & 65535;
+}
+
+std::vector<Token> lz77_compress(const std::string &s, int windowSize, int maxMatchLen)
+{
+    int n = s.size();
+
+    // Sửa thành 65536 để mảng có thể chứa index từ 0 đến 65535
+    const int HASH_SIZE = 65536;
+
+    std::vector<int> head(HASH_SIZE, -1);
+    std::vector<int> prev(n, -1);
+
+    std::vector<Token> tokens;
     int i = 0;
+
     while (i < n)
     {
-        index.clear();
-        // Xây dựng chỉ mục cho cửa sổ trượt
-        for (int j = std::max(0, i - windowSize); j + 2 < i; j++)
-        {
-            index[s.substr(j, 3)].push_back(j);
-        }
+        int bestLen = 0;
+        int bestDist = 0;
 
-        uint16_t bestLen = 0;
-        uint16_t bestdistance = 0;
-        uint16_t lookahead = std::min(maxMatchLen, static_cast<uint16_t>(n - i));
-        std::string key = s.substr(i, std::min(static_cast<uint16_t>(3), lookahead));
-
-        if (index.count(key))
+        if (i + 2 < n)
         {
-            for (int pos : index[key])
+            uint32_t h = hash3(s, i);
+            int candidate = head[h];
+            while (candidate != -1)
             {
-                int distance = i - pos;
+                int distance = i - candidate;
                 if (distance > windowSize)
-                    continue;
+                    break;
 
                 int len = 0;
-                // BỎ ĐIỀU KIỆN: len < (i - pos) ĐỂ HỖ TRỢ OVERLAP
-                // Điều này giúp nén chuỗi "aaaaa" thành 1 Match thay vì nhiều Literal
                 while (i + len < n &&
-                       s[pos + len] == s[i + len] &&
+                       s[candidate + len] == s[i + len] &&
                        len < maxMatchLen)
                 {
                     len++;
@@ -50,38 +53,42 @@ std::vector<Token> lz77_compress(
                 if (len > bestLen)
                 {
                     bestLen = len;
-                    bestdistance = distance;
+                    bestDist = distance;
                 }
+
+                // Chuyển sang vị trí cũ hơn có cùng mã Hash
+                candidate = prev[candidate];
             }
+
+            // Cập nhật Hash Table
+            prev[i] = head[h];
+            head[h] = i;
         }
-        // Chỉ tạo Match nếu độ dài đủ lớn (thường >= 3) để thực sự có lợi về dung lượng
+
         if (bestLen >= 3)
         {
-            tokens.push_back(Token{
-                true,         // isMatch
-                0,            // literal
-                bestdistance, // distance
-                bestLen       // length
-            });
+            tokens.push_back({true, 0, bestDist, bestLen});
             i += bestLen;
         }
         else
         {
-            tokens.push_back(Token{
-                false,
-                s[i],
-                0,
-                0});
-            i += 1;
+            tokens.push_back({false, s[i], 0, 0});
+            i++;
         }
     }
+
     return tokens;
 }
-
-// Hàm giải mã LZ77
 std::string lz77_decode(const std::vector<Token> &tokens)
 {
     std::string result = "";
+
+    size_t expectedSize = 0;
+    for (const auto &t : tokens)
+    {
+        expectedSize += t.isMatch ? t.length : 1;
+    }
+    result.reserve(expectedSize);
 
     for (const auto &t : tokens)
     {
@@ -91,20 +98,23 @@ std::string lz77_decode(const std::vector<Token> &tokens)
         }
         else
         {
-            int currentSize = (int)result.size();
+            size_t currentSize = result.size();
 
-            // KIỂM TRA AN TOÀN: Tránh lỗi Assertion '__pos <= size()'
-            // startPos phải >= 0, nghĩa là t.distance không được lớn hơn kích thước hiện tại
-            if (t.distance > 0 && t.distance <= currentSize)
+            if (t.distance > 0 && (size_t)t.distance <= currentSize)
             {
-                int startPos = currentSize - t.distance;
-                for (int i = 0; i < t.length; ++i)
+                size_t startPos = currentSize - (size_t)t.distance;
+                for (size_t i = 0; i < (size_t)t.length; ++i)
                 {
                     // Copy từng ký tự một để xử lý được trường hợp Overlap
                     // Ví dụ: nén "aaaaa" với dist=1, len=4.
-                    // Khi copy 'a' thứ 2, nó sẽ lấy 'a' thứ 1 vừa mới được thêm vào kết quả.
                     result += result[startPos + i];
                 }
+            }
+            else
+            {
+                std::cerr << "[Canh bao] Loi giai ma LZ77: distance ("
+                          << t.distance << ") vuot qua du lieu hien tai ("
+                          << currentSize << ")!\n";
             }
         }
     }
