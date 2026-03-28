@@ -62,14 +62,21 @@ int readBit(InBitStream &stream)
     return bit;
 }
 
-unsigned int readBits(InBitStream &stream, int length) // Đọc chuỗi bit
+int readBits(InBitStream &stream, int length)
 {
-    unsigned int val = 0;
+    int val = 0;
     for (int i = 0; i < length; ++i)
     {
         int bit = readBit(stream);
+
+        // Nếu chạm EOF (hết file)
         if (bit == -1)
+        {
+            if (i == 0)
+                return -1;
+
             break;
+        }
         val = (val << 1) | bit;
     }
     return val;
@@ -100,24 +107,47 @@ int getSymbol(InBitStream &inStream, Node *root)
     }
     return curr->value;
 }
-void writeHeader(OutBitStream &out, const std::unordered_map<int, int> &freqs, size_t totalTokens)
+// Hàm phụ trợ lấy đuôi file
+std::string getExtension(const std::string &filename)
 {
-    // 1. Ghi số lượng phần tử của bảng tần suất (Dùng 32 bit cho an toàn)
-    writeBits(out, freqs.size(), 32);
+    size_t lastdot = filename.find_last_of(".");
+    if (lastdot == std::string::npos)
+        return ""; // File không có đuôi
+    return filename.substr(lastdot);
+}
 
-    // 2. Ghi từng cặp (Giá trị, Tần suất)
+void writeHeader(OutBitStream &out, const std::unordered_map<int, int> &freqs, size_t totalTokens, const std::string &ext)
+{
+    // GHI ĐUÔI FILE
+    writeBits(out, ext.size(), 8); // Dùng 8 bit để lưu độ dài đuôi file
+    for (char c : ext)
+    {
+        writeBits(out, c, 8); // Ghi từng ký tự của đuôi file (mã ASCII)
+    }
+
+    // Ghi bảng tần suất
+    writeBits(out, freqs.size(), 32);
     for (auto const &[v, f] : freqs)
     {
-
         writeBits(out, v, 32);
         writeBits(out, f, 32);
     }
+
+    // GHI TOTAL TOKENS (Như cũ)
     writeBits(out, totalTokens, 32);
 }
-std::unordered_map<int, int> readHeader(InBitStream &in, size_t &totalTokens)
+std::unordered_map<int, int> readHeader(InBitStream &in, size_t &totalTokens, std::string &ext)
 {
-    std::unordered_map<int, int> freqs;
+    // ĐỌC LẠI ĐUÔI FILE
+    int extLen = readBits(in, 8);
+    ext = "";
+    for (int i = 0; i < extLen; ++i)
+    {
+        ext += (char)readBits(in, 8);
+    }
 
+    // 2. ĐỌC BẢNG TẦN SUẤT VÀ TOTAL TOKENS (Như cũ)
+    std::unordered_map<int, int> freqs;
     size_t mapSize = readBits(in, 32);
     for (size_t i = 0; i < mapSize; ++i)
     {
@@ -125,7 +155,6 @@ std::unordered_map<int, int> readHeader(InBitStream &in, size_t &totalTokens)
         int f = readBits(in, 32);
         freqs[v] = f;
     }
-
     totalTokens = readBits(in, 32);
     return freqs;
 }
