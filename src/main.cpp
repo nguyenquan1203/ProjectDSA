@@ -1,117 +1,149 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <chrono>
 #include <unordered_map>
 
-#include "lib/Huffman.h"
-#include "lib/LZ77.h"
-#include "lib/Bitstream.h"
-#include "lib/File.h"
-std::string getBaseName(const std::string &filename)
-{
-    size_t lastdot = filename.find_last_of(".");
-    if (lastdot == std::string::npos)
-        return filename;
-    return filename.substr(0, lastdot);
-}
+#include "../lib/Huffman.h"
+#include "../lib/LZ77.h"
+#include "../lib/Bitstream.h"
+#include "../lib/File.h"
 
-void compressFile()
+#define lengthSize 256
+#define matchSize 1280
+void compress(std::string inputName)
 {
-    // 1. Đọc dữ liệu đầu vào
-    std::string inputName;
-    std::cout << "Nhap ten file can nen ";
-    std::cin >> inputName;
-
-    std::string base = getBaseName(inputName);
-    std::string outputName = base + "_compressed.bin";
+    // Đọc dữ liệu
     std::string inputData = readFile(inputName);
     if (inputData.empty())
-    {
-        std::cerr << "Loi: File dau vao trong hoac khong ton tai.\n";
         return;
-    }
+    std::string outputName = getBaseName(inputName) + ".bin";
+
+    std::string ext = getExtension(inputName);
 
     std::vector<Token> tokens = lz77_compress(inputData, 1024, 1024);
-
     std::unordered_map<int, int> freqs = caculateFreqs(tokens);
     auto p_queue = generateQueue(freqs);
     Node *root = generateTree(p_queue);
 
     std::unordered_map<int, BitCode> mapCodes;
-    if (root != nullptr)
+    if (root)
         generateCode(root, 0, 0, mapCodes);
-    OutBitStream outStream(outputName);
-    writeHeader(outStream, freqs, tokens.size());
 
-    for (const auto &t : tokens)
+    // Tính toán kích thước dự kiến (đơn vị: bit)
+    size_t payloadBits = 0;
+    if (root)
     {
-        if (!t.isMatch)
+        for (const auto &t : tokens)
         {
-            int val = (int)(unsigned char)t.literal;
-            writeBits(outStream, mapCodes[val].val, mapCodes[val].length);
-        }
-        else
-        {
-            int lenVal = t.length + lengthSize;
-            writeBits(outStream, mapCodes[lenVal].val, mapCodes[lenVal].length);
-
-            int distVal = t.distance + matchSize;
-            writeBits(outStream, mapCodes[distVal].val, mapCodes[distVal].length);
+            int key = t.isMatch ? (t.length + lengthSize) : (unsigned char)t.literal;
+            if (mapCodes.count(key))
+            {
+                payloadBits += mapCodes[key].length;
+            }
+            if (t.isMatch && mapCodes.count(t.distance + matchSize))
+            {
+                payloadBits += mapCodes[t.distance + matchSize].length;
+            }
         }
     }
-    closeOutStream(outStream);
-    deleteTree(root);
-    std::cout << "Nen thanh cong! Kich thuoc Token: " << tokens.size() << "\n";
+
+    size_t headerBits = 1 + 1 + ext.size() + 4 + (freqs.size() * 8) + 4;
+    size_t totalBits = headerBits + payloadBits;
+    size_t originalBits = inputData.size() * 8;
+
+    OutBitStream out(outputName);
+    if (totalBits > originalBits || !root)
+    {
+        // CỜ 0: LƯU THÔ
+        writeBits(out, 0, 8);
+        writeHeaderExtension(out, ext);
+        for (unsigned char c : inputData)
+            writeBits(out, c, 8);
+    }
+    else
+    {
+        // CỜ 1: NÉN
+        writeBits(out, 1, 8);
+        writeHeader(out, freqs, tokens.size(), ext);
+        for (const auto &t : tokens)
+        {
+            if (!t.isMatch)
+            {
+                int v = (unsigned char)t.literal;
+                writeBits(out, mapCodes[v].val, mapCodes[v].length);
+            }
+            else
+            {
+                int lIdx = t.length + lengthSize;
+                int dIdx = t.distance + matchSize;
+                writeBits(out, mapCodes[lIdx].val, mapCodes[lIdx].length);
+                writeBits(out, mapCodes[dIdx].val, mapCodes[dIdx].length);
+            }
+        }
+    }
+    closeOutStream(out);
+    if (root)
+        deleteTree(root);
 }
-void decompressFile()
+
+void decompress(std::string inputName)
 {
-    std::string inputName;
-    std::cout << "Nhap ten file nen (.bin): ";
-    std::cin >> inputName;
-
-    std::string outputName = getBaseName(inputName);
-
-    size_t pos = outputName.find("_compressed");
-    if (pos != std::string::npos)
-        outputName = outputName.substr(0, pos);
-    outputName += "_recovered.txt";
-    InBitStream inStream(inputName);
-    if (!inStream.in.is_open())
-    {
-        std::cerr << "Loi: Khong the mo file nen!\n";
+    InBitStream in(inputName);
+    if (!in.in.is_open())
         return;
+
+    int flag = readBits(in, 8);
+    std::string outputName = getBaseName(inputName) + "_recovered";
+    if (flag == 0)
+    {
+        // Giải nén cho file không nén (Lưu thô)
+        std::string ext = readHeaderExtension(in);
+        std::string data = "";
+        int c;
+        while ((c = readBits(in, 8)) != -1)
+        {
+            data += (char)c;
+        }
+        outputName += ext;
+        saveToFile(outputName, data);
     }
-    size_t totalTokens = 0;
-    std::unordered_map<int, int> freqs = readHeader(inStream, totalTokens);
+    else if (flag == 1)
+    {
+        // Giải nén cho file có nén
+        size_t totalTokens = 0;
+        std::string ext;
+        std::unordered_map<int, int> freqs = readHeader(in, totalTokens, ext);
 
-    auto p_queue = generateQueue(freqs);
-    Node *root = generateTree(p_queue);
-
-    std::vector<Token> decodedTokens = decodeTokens(inStream, root, totalTokens);
-
-    std::string finalData = lz77_decode(decodedTokens);
-
-    saveToFile(outputName, finalData);
-    deleteTree(root);
-    closeInStream(inStream);
-
-    std::cout << "Giai nen thanh cong! File ket qua: " << outputName << "\n";
+        auto p_queue = generateQueue(freqs);
+        Node *root = generateTree(p_queue);
+        if (root)
+        {
+            std::vector<Token> dTokens = decodeTokens(in, root, totalTokens);
+            std::string finalData = lz77_decode(dTokens);
+            outputName += ext;
+            saveToFile(outputName, finalData);
+            deleteTree(root);
+        }
+    }
+    closeInStream(in);
 }
 
 int main()
 {
-    int choice;
-    std::cout << "\n===== HE THONG NEN DEFLATE =====\n";
-    std::cout << "1. Nen file\n";
-    std::cout << "2. Giai nen file\n";
-    std::cout << "Lua chon: ";
-    std::cin >> choice;
-
-    if (choice == 1)
-        compressFile();
-    else if (choice == 2)
-        decompressFile();
+    std::string inputFile, outputFile;
+    int option;
+    std::cout << "Nhap ten file muon nen hoac giai nen: ";
+    std::cin >> inputFile;
+    std::cout << "Nhap lua chon cua ban (1 la nen, 2 la giai nen) ";
+    std::cin >> option;
+    if (option == 1)
+    {
+        compress(inputFile);
+    }
+    else
+    {
+        decompress(inputFile);
+    }
     system("pause");
     return 0;
 }
