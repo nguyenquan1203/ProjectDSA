@@ -64,49 +64,60 @@ size_t getPeakRSS()
 
 BenchMark runFull(std::string fileName,
                   std::function<void(std::string, std::string)> compress,
-                  std::function<void(std::string, std::string)> decompress)
+                  std::function<void(std::string, std::string)> decompress,
+                  std::string binDir, std::string recDir,
+                  bool isComp, bool isDecomp)
 {
 
     BenchMark result;
     fs::path p(fileName);
 
-    // Khai báo các thư mục đích
-    std::string binDir = "compressed_files";
-    std::string recDir = "recovered_files";
+    std::string file1 = fileName;
+    std::string file2 = binDir + "/" + p.stem().string() + ".bin";
+    std::string file3 = recDir + "/" + p.stem().string() + "_dec" + p.extension().string();
 
-    // Tạo thư mục nếu chưa tồn tại
     if (!fs::exists(binDir))
         fs::create_directories(binDir);
     if (!fs::exists(recDir))
         fs::create_directories(recDir);
 
-    std::string file1 = fileName;                                                           // File gốc
-    std::string file2 = binDir + "/" + p.stem().string() + ".bin";                          // File nén
-    std::string file3 = recDir + "/" + p.stem().string() + "_dec" + p.extension().string(); // File giải nén
-
     result.fileName = p.filename().string();
     result.originalSize = (size_t)getFileSize(file1);
+    result.isPassed = false; // Mặc định là false
 
-    // Đo quá trình nén
-    auto t1 = clk::now();
-    compress(file1, file2);
-    auto t2 = clk::now();
-    result.compTime = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    // --- KHỐI 1: QUÁ TRÌNH NÉN ---
+    if (isComp)
+    {
+        auto t1 = clk::now();
+        compress(file1, file2);
+        auto t2 = clk::now();
+        result.compTime = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+        result.compressedSize = (size_t)getFileSize(file2);
+    }
+    else
+    {
+        result.compTime = 0;
+        result.compressedSize = fs::exists(file2) ? (size_t)getFileSize(file2) : 0;
+    }
 
-    result.compressedSize = (size_t)getFileSize(file2);
     result.peekRamUsage = (long long)getPeakRSS();
 
-    // Đo quá trình giải nén
-    auto t3 = clk::now();
-    decompress(file2, file3);
-    auto t4 = clk::now();
-    result.decompTime = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
+    // --- KHỐI 2: QUÁ TRÌNH GIẢI NÉN ---
+    if (isDecomp && fs::exists(file2))
+    {
+        auto t3 = clk::now();
+        decompress(file2, file3);
+        auto t4 = clk::now();
+        result.decompTime = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
 
-    // Kiểm tra tính đúng đắn
-    result.isPassed = compareFile(file1, file3);
-
-    // Lưu ý: Không xóa file2 (file nén) và file3 (file giải nén)
-    // để người dùng có thể kiểm tra trong các folder tương ứng.
+        result.isPassed = compareFile(file1, file3);
+    }
+    else
+    {
+        result.decompTime = 0;
+        if (!isDecomp && isComp)
+            result.isPassed = fs::exists(file2);
+    }
 
     return result;
 }
