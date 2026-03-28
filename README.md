@@ -1,6 +1,5 @@
 # DEFLATE Data Compression Engine
 
-*Read this in [Vietnamese](README-vi.md).*
 
 A high-performance C++ compression suite implementing the **DEFLATE** algorithm (LZ77 + Huffman Coding). Designed for the Data Structures and Algorithms (DSA) course to explore the efficiency of hybrid compression on diverse datasets.
 
@@ -25,6 +24,8 @@ g++ src/main.cpp Deflate/*.cpp -Ilib -o main
 ```
 
 ## Project Report
+
+*Read this in [Vietnamese](README-vi.md).*
 
 ---
 
