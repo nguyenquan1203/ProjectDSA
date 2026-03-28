@@ -34,7 +34,8 @@ void internalDrawTable(std::ostream &os, const std::vector<BenchMark> &results)
     for (const auto &b : results)
     {
 
-        double ramMB = (double)b.peekRamUsage / 1048576.0;
+        double speed = (b.compTime > 0) ? ((double)b.originalSize / 1048576.0) / (b.compTime / 1000.0) : 0;
+        double ramMB = (double)b.peakRamUsage / 1048576.0;
 
         std::string name = b.fileName;
         if (name.length() > W_NAME - 1)
@@ -45,9 +46,9 @@ void internalDrawTable(std::ostream &os, const std::vector<BenchMark> &results)
            << std::setw(W_SIZE) << b.compressedSize
            << std::fixed << std::setprecision(2)
            << std::setw(W_PCT) << b.getSaving()
-           << std::setw(W_TIME) << (int)b.compTime
-           << std::setw(W_TIME) << (int)b.decompTime
-           << std::setw(W_SPD) << b.getCompSpeed()
+           << std::setw(W_TIME) << b.compTime
+           << std::setw(W_TIME) << b.decompTime
+           << std::setw(W_SPD) << speed
            << std::setw(W_RAM) << ramMB
            << "  " << (b.isPassed ? "[PASS]" : "[FAIL]") << "\n";
 
@@ -67,6 +68,35 @@ void printSummary(const std::vector<BenchMark> &results)
     std::cout << "                         BANG TONG HOP KET QUA KIEM THU\n";
     std::cout << std::string(115, '=') << "\n";
     internalDrawTable(std::cout, results);
+}
+
+void writeCSV(const std::vector<BenchMark> &results)
+{
+    std::ofstream f("data_chart.csv");
+
+    if (!f.is_open())
+    {
+        return;
+    }
+
+    f << "FileName,OriginalSize_KB,CompressedSize_KB,SavePercent,CompTime_ms,DecompTime_ms,RAM_MB\n";
+
+    f << std::fixed << std::setprecision(3);
+    for (const auto &res : results)
+    {
+        double orgKB = (double)res.originalSize / 1024.0;
+        double compKB = (double)res.compressedSize / 1024.0;
+        double ramMB = (double)res.peakRamUsage / (1024.0 * 1024.0);
+
+        f << res.fileName << ","
+          << orgKB << ","
+          << compKB << ","
+          << res.getSaving() << ","
+          << res.compTime << "," // Đã là số thực ms
+          << res.decompTime << ","
+          << ramMB << "\n";
+    }
+    f.close();
 }
 
 void writeReport(const std::vector<BenchMark> &results)
@@ -138,7 +168,7 @@ std::vector<BenchMark> runBatchTest(std::string folderPath,
             std::cout << (res.isPassed ? "[SUCCESS]" : "[FAIL]") << "\n";
         }
     }
-
+    writeCSV(results);
     bool isSummary;
     char select;
     std::cout << "[?] Ban co muon hien bang tong ket khong? (y/n): ";

@@ -36,21 +36,6 @@ clk::time_point getCurrentTime()
     return clk::now();
 }
 
-double getDurationMs(clk::time_point time2, clk::time_point time1)
-{
-    std::chrono::duration<double, std::milli> dur = time2 - time1;
-    return dur.count();
-}
-
-double getRunTime(std::function<void()> func)
-{
-    clk::time_point t1 = getCurrentTime();
-    if (func)
-        func();
-    clk::time_point t2 = getCurrentTime();
-    double dur = getDurationMs(t2, t1);
-    return dur;
-}
 
 size_t getPeakRSS()
 {
@@ -91,7 +76,7 @@ BenchMark runFull(std::string fileName,
         auto t1 = clk::now();
         compress(file1, file2);
         auto t2 = clk::now();
-        result.compTime = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+        result.compTime = std::chrono::duration<double, std::milli>(t2 - t1).count();
         result.compressedSize = (size_t)getFileSize(file2);
     }
     else
@@ -99,8 +84,7 @@ BenchMark runFull(std::string fileName,
         result.compTime = 0;
         result.compressedSize = fs::exists(file2) ? (size_t)getFileSize(file2) : 0;
     }
-
-    result.peekRamUsage = (long long)getPeakRSS();
+    result.peakRamUsage = (long long)getPeakRSS();
 
     // --- KHỐI 2: QUÁ TRÌNH GIẢI NÉN ---
     if (isDecomp && fs::exists(file2))
@@ -108,7 +92,7 @@ BenchMark runFull(std::string fileName,
         auto t3 = clk::now();
         decompress(file2, file3);
         auto t4 = clk::now();
-        result.decompTime = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
+        result.decompTime = std::chrono::duration<double, std::milli>(t4 - t3).count();
 
         result.isPassed = compareFile(file1, file3);
     }
