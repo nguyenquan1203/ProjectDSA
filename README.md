@@ -86,7 +86,7 @@ This project extends beyond standard algorithmic implementation, demonstrating s
 
 ---
 
-### 6. Roadmap to Enterprise Scalability
+### 6. Extensions
 To evolve this engine from an academic project into an enterprise-grade utility, we propose the following architectural extensions:
 
 * **$O(1)$ Space Complexity via Chunking:** The current $636$ MB RAM bottleneck can be resolved by implementing Block-Level Streaming. By reading, compressing, and flushing data in independent $64$ KB chunks, the engine's memory footprint becomes $O(1)$ (constant), allowing it to process multi-gigabyte files (e.g., 4K videos or database dumps) even on low-RAM IoT devices.
