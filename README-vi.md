@@ -38,7 +38,7 @@ $$S = \left( 1 - \frac{\text{Dung lượng sau nén}}{\text{Dung lượng gốc}
 
 | Nhóm dữ liệu | % Tiết kiệm trung bình | Tốc độ xử lý | Đỉnh RAM sử dụng |
 | :--- | :--- | :--- | :--- |
-| **Độ lặp cao (Log)** | **75% - 82%** | ~10.5 MB/s | ~11 MB - 391 MB |
+| **Độ lặp cao (Log)** | **70% - 82%** | ~10.5 MB/s | ~11 MB - 391 MB |
 | **Văn bản & nhị phân (Chuẩn)** | **35% - 53%** | ~8.4 MB/s | ~15 MB - 636 MB |
 | **File siêu nhỏ (Source code)** | **Âm (Bị phình to)** | < 1.0 MB/s | ~6 MB |
 
