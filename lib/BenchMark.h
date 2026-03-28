@@ -23,7 +23,6 @@ struct BenchMark
     long long peekRamUsage; // bytes
     bool isPassed;
 
-    // Các hàm tính toán nhanh
     double getSaving() const
     {
         if (originalSize == 0)
@@ -40,14 +39,14 @@ struct BenchMark
 
     double getCompSpeed() const
     {
-        if (compTime <= 0)
+        if (compTime == 0)
             return 0;
         return (originalSize / (1024.0 * 1024.0)) / (compTime / 1000.0);
     }
 
     double getDecompSpeed() const
     {
-        if (decompTime <= 0)
+        if (decompTime == 0)
             return 0;
         return (originalSize / (1024.0 * 1024.0)) / (decompTime / 1000.0);
     }
@@ -65,6 +64,10 @@ double getRunTime(std::function<void()> func);
 
 size_t getPeakRSS();
 
-BenchMark runFull(std::string fileName, std::function<void(std::string, std::string)> compress, std::function<void(std::string, std::string)> decompress);
+BenchMark runFull(std::string fileName,
+                  std::function<void(std::string, std::string)> compress,
+                  std::function<void(std::string, std::string)> decompress,
+                  std::string binDir, std::string recDir,
+                  bool isComp, bool isDecomp);
 
 #endif
