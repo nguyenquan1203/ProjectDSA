@@ -65,7 +65,7 @@ $$S = \left( 1 - \frac{\text{Compressed Size}}{\text{Original Size}} \right) \ti
 
 | Dataset Category | Avg. Save % | Speed Trend | Peak RAM |
 | :--- | :--- | :--- | :--- |
-| **High Redundancy (Logs)** | **75% - 82%** | ~10.5 MB/s | ~11 MB - 391 MB |
+| **High Redundancy (Logs)** | **70% - 82%** | ~10.5 MB/s | ~11 MB - 391 MB |
 | **Standard (Text/Binaries)**| **35% - 53%** | ~8.4 MB/s | ~15 MB - 636 MB |
 | **Micro-files (Source Code)** | **Negative** | < 1.0 MB/s | ~6 MB |
 
