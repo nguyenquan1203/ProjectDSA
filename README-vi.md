@@ -59,8 +59,8 @@ $$S = \left( 1 - \frac{\text{Dung lượng sau nén}}{\text{Dung lượng gốc}
 
 ---
 
-### 6. Lộ trình mở rộng cấp doanh nghiệp
-Để nâng cấp hệ thống từ một dự án học thuật lên một công cụ đáp ứng quy mô doanh nghiệp, chúng mình đề xuất các hướng mở rộng kiến trúc sau:
+### 6. Mở rộng
+Để nâng cấp hệ thống chúng mình đề xuất các hướng mở rộng sau:
 
 * **Độ phức tạp không gian $O(1)$ thông qua chunking:** Điểm nghẽn 636 MB RAM hiện tại có thể được giải quyết triệt để bằng cách xử lý luồng theo khối (block-level streaming). Bằng cách đọc, nén và dồn bit theo từng khối **64 KB** độc lập, mức tiêu thụ RAM của hệ thống sẽ trở thành hằng số $O(1)$. Điều này cho phép nén các file khổng lồ vài GB (video 4K, bản sao lưu database) ngay cả trên các thiết bị IoT yếu kém về bộ nhớ.
 * **Tối ưu hóa cho API & IoT (Cây Huffman tĩnh):** Để giải quyết triệt để lỗi nén âm trên file siêu nhỏ, chúng mình có thể thiết kế thêm tùy chọn sử dụng cây Huffman tĩnh (được tính toán trước và fix cứng trong code). Việc này xóa bỏ hoàn toàn phần header dư thừa, biến thuật toán trở nên cực kỳ tối ưu khi nén các gói tin JSON bé xíu trong các REST API.
