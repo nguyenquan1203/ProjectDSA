@@ -2,7 +2,15 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "File.h"
+#include "../lib/File.h"
+
+std::string getBaseName(const std::string &filename)
+{
+    size_t lastdot = filename.find_last_of(".");
+    if (lastdot == std::string::npos)
+        return filename;
+    return filename.substr(0, lastdot);
+}
 std::string readFile(const std::string &filename)
 {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
@@ -34,4 +42,28 @@ void saveToFile(const std::string &filename, const std::string &data)
         out.write(data.c_str(), data.size());
         out.close();
     }
+}
+void writeHeaderExtension(OutBitStream &out, const std::string &ext)
+{
+    // Lưu đuôi file
+    writeBits(out, (int)ext.size(), 8);
+    for (char c : ext)
+        writeBits(out, (unsigned char)c, 8);
+}
+
+std::string readHeaderExtension(InBitStream &in)
+{
+    // Đọc đuôi file
+    int extLen = readBits(in, 8);
+    if (extLen < 0 || extLen > 255)
+        return "";
+    std::string ext = "";
+    for (int i = 0; i < extLen; ++i)
+    {
+        int c = readBits(in, 8);
+        if (c == -1)
+            break;
+        ext += (char)c;
+    }
+    return ext;
 }
