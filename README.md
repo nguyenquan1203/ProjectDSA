@@ -15,6 +15,11 @@ This engine provides a complete pipeline for file compression and decompression.
 
 ## Build & Run
 
+### Environment
+
+* **Language:** C++
+* **Compiler:** MinGW / GCC (on Windows)
+
 ```bash
 # 1. Compile the source code into an executable named 'main'
 g++ src/main.cpp Deflate/*.cpp -Ilib -o main
@@ -41,7 +46,7 @@ This document records the experimental results and performance analysis for the 
 
 ```bash
 # 1. Compile the source code into an executable named 'Test'
-g++  g++ Experiment/*.cpp Deflate/*.cpp -I lib -o Test
+ g++ Experiment/*.cpp Deflate/*.cpp -I lib -o Test
 
 # 2. Run the program
 ./Test
