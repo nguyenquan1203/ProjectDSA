@@ -46,7 +46,10 @@ void closeInStream(InBitStream &stream); // Đóng file
 
 int getSymbol(InBitStream &inStream, Node *root);
 
-void writeHeader(OutBitStream &out, const std::unordered_map<int, int> &freqs, size_t totalTokens);
+std::string getExtension(const std::string &filename);
 
-std::unordered_map<int, int> readHeader(InBitStream &in, size_t &totalTokens);
+void writeHeader(OutBitStream &out, const std::unordered_map<int, int> &freqs, size_t totalTokens, const std::string &ext);
+
+std::unordered_map<int, int> readHeader(InBitStream &in, size_t &totalTokens, std::string &ext);
+
 #endif
