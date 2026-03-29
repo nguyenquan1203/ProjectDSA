@@ -17,29 +17,6 @@ namespace fs = std::filesystem;
 #define lengthSize 256
 #define matchSize 1280
 
-void writeHeaderExtensionOnly(OutBitStream &out, const std::string &ext)
-{
-    writeBits(out, (int)ext.size(), 8);
-    for (char c : ext)
-        writeBits(out, (unsigned char)c, 8);
-}
-
-std::string readHeaderExtensionOnly(InBitStream &in)
-{
-    int extLen = readBits(in, 8);
-    if (extLen < 0 || extLen > 255)
-        return "";
-    std::string ext = "";
-    for (int i = 0; i < extLen; ++i)
-    {
-        int c = readBits(in, 8);
-        if (c == -1)
-            break;
-        ext += (char)c;
-    }
-    return ext;
-}
-
 void compressFile(std::string inputName, std::string outputName)
 {
     std::string inputData = readFile(inputName);
@@ -82,7 +59,7 @@ void compressFile(std::string inputName, std::string outputName)
     if (totalBits >= originalBits || !root)
     {
         writeBits(out, 0, 8);
-        writeHeaderExtensionOnly(out, ext);
+        writeHeaderExtension(out, ext);
         for (unsigned char c : inputData)
             writeBits(out, c, 8);
     }
@@ -121,7 +98,7 @@ void decompressFile(std::string inputName, std::string outputName)
     int flag = readBits(in, 8);
     if (flag == 0)
     {
-        std::string ext = readHeaderExtensionOnly(in);
+        std::string ext = readHeaderExtension(in);
         std::string data = "";
         int c;
         while ((c = readBits(in, 8)) != -1)
@@ -149,76 +126,76 @@ void decompressFile(std::string inputName, std::string outputName)
     closeInStream(in);
 }
 
-// int main()
-// {
+int main()
+{
 
-//     std::cout << "====================================================\n";
-//     std::cout << "   BENCHMARK SYSTEM: SMART HYBRID DEFLATE           \n";
-//     std::cout << "   (LZ77 + Huffman with Automatic Store Logic)      \n";
-//     std::cout << "====================================================\n";
-//     // 1. Nhập folder cần nén
-//     std::string testFolder;
-//     std::cout << "[?] Nhap duong dan thu muc test (Mac dinh: test_cases): ";
-//     std::getline(std::cin, testFolder);
-//     if (testFolder.empty())
-//         testFolder = "test_cases";
+    std::cout << "====================================================\n";
+    std::cout << "   BENCHMARK SYSTEM: SMART HYBRID DEFLATE           \n";
+    std::cout << "   (LZ77 + Huffman with Automatic Store Logic)      \n";
+    std::cout << "====================================================\n";
+    // 1. Nhập folder cần nén
+    std::string testFolder;
+    std::cout << "[?] Nhap duong dan thu muc test (Mac dinh: test_cases): ";
+    std::getline(std::cin, testFolder);
+    if (testFolder.empty())
+        testFolder = "test_cases";
 
-//     if (!fs::exists(testFolder))
-//     {
-//         std::cout << "[Loi] Khong tim thay thu muc: " << testFolder << "\n";
-//         std::cout << "====================================================\n";
-//         std::cout << "Nhan phim bat ky de thoat...";
-//         std::cin.ignore(1000, '\n');
-//         std::cin.get();
-//         return 1;
-//     }
+    if (!fs::exists(testFolder))
+    {
+        std::cout << "[Loi] Khong tim thay thu muc: " << testFolder << "\n";
+        std::cout << "====================================================\n";
+        std::cout << "Nhan phim bat ky de thoat...";
+        std::cin.ignore(1000, '\n');
+        std::cin.get();
+        return 1;
+    }
 
-//     // 2. Lựa chọn chế độ Nén (isComp)
-//     char cChoice, dChoice;
-//     bool isComp = true;
-//     bool isDecomp = true;
+    // 2. Lựa chọn chế độ Nén (isComp)
+    char cChoice, dChoice;
+    bool isComp = true;
+    bool isDecomp = true;
 
-//     std::cout << "[?] Ban co muon thuc hien NEN khong? (y/n): ";
-//     std::cin >> cChoice;
-//     isComp = (cChoice == 'y' || cChoice == 'Y');
+    std::cout << "[?] Ban co muon thuc hien NEN khong? (y/n): ";
+    std::cin >> cChoice;
+    isComp = (cChoice == 'y' || cChoice == 'Y');
 
-//     // 3. Lựa chọn chế độ Giải nén (isDecomp)
-//     std::cout << "[?] Ban co muon thuc hien GIAI NEN khong? (y/n): ";
-//     std::cin >> dChoice;
-//     isDecomp = (dChoice == 'y' || dChoice == 'Y');
+    // 3. Lựa chọn chế độ Giải nén (isDecomp)
+    std::cout << "[?] Ban co muon thuc hien GIAI NEN khong? (y/n): ";
+    std::cin >> dChoice;
+    isDecomp = (dChoice == 'y' || dChoice == 'Y');
 
-//     // Kiểm tra nếu không chọn gì cả
-//     if (!isComp && !isDecomp)
-//     {
-//         std::cout << "[!] Ban khong chon bat ky tac vu nao. Ket thuc.\n";
-//         std::cout << "====================================================\n";
-//         std::cout << "Nhan phim bat ky de thoat...";
-//         std::cin.ignore(1000, '\n');
-//         std::cin.get();
-//         return 0;
-//     }
+    // Kiểm tra nếu không chọn gì cả
+    if (!isComp && !isDecomp)
+    {
+        std::cout << "[!] Ban khong chon bat ky tac vu nao. Ket thuc.\n";
+        std::cout << "====================================================\n";
+        std::cout << "Nhan phim bat ky de thoat...";
+        std::cin.ignore(1000, '\n');
+        std::cin.get();
+        return 0;
+    }
 
-//     std::cout << "\n--- DANG KHOI TAO TIEN TRINH ---\n";
-//     std::cout << "> Che do Nen:      [" << (isComp ? "BAT" : "TAT") << "]\n";
-//     std::cout << "> Che do Giai nen: [" << (isDecomp ? "BAT" : "TAT") << "]\n";
-//     std::cout << "----------------------------------------------------\n";
+    std::cout << "\n--- DANG KHOI TAO TIEN TRINH ---\n";
+    std::cout << "> Che do Nen:      [" << (isComp ? "BAT" : "TAT") << "]\n";
+    std::cout << "> Che do Giai nen: [" << (isDecomp ? "BAT" : "TAT") << "]\n";
+    std::cout << "----------------------------------------------------\n";
 
-//     std::vector<BenchMark> results = runBatchTest(
-//         testFolder,
-//         compressFile,
-//         decompressFile,
-//         isComp,
-//         isDecomp);
+    std::vector<BenchMark> results = runBatchTest(
+        testFolder,
+        compressFile,
+        decompressFile,
+        isComp,
+        isDecomp);
 
-//     // 5. Kết xuất kết quả
-//     if (!results.empty())
-//     {
-//         std::cout << "\n[OK] Kiem thu hoan tat. Xem chi tiet trong file report.txt\n";
-//     }
+    // 5. Kết xuất kết quả
+    if (!results.empty())
+    {
+        std::cout << "\n[OK] Kiem thu hoan tat. Xem chi tiet trong file report.txt\n";
+    }
 
-//     std::cout << "====================================================\n";
-//     std::cout << "Nhan phim bat ky de thoat...";
-//     std::cin.ignore(1000, '\n');
-//     std::cin.get();
-//     return 0;
-// }
+    std::cout << "====================================================\n";
+    std::cout << "Nhan phim bat ky de thoat...";
+    std::cin.ignore(1000, '\n');
+    std::cin.get();
+    return 0;
+}
