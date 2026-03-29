@@ -23,6 +23,30 @@ g++ src/main.cpp Deflate/*.cpp -Ilib -o main
 ./main
 ```
 
+# Deflate Performance Experiment
+
+This document records the experimental results and performance analysis for the implemented algorithms.
+
+## 1. Environment
+* **Language:** C++
+* **Compiler:** MinGW / GCC (on Windows)
+* **Libraries used:** * `<chrono>`: For measuring execution time.
+    * `<psapi.h>`: For monitoring memory usage (Windows API).
+
+## 2. Dateset
+* **Dataset:** [Download Dataset (Google Drive)](https://drive.google.com/drive/folders/1QzfY9ciPuGCJPWq2nDD5Lfq-7FMsh2tp) — Contains 237 diverse test cases.
+
+## 3. How to Run the Test
+## Build & Run
+
+```bash
+# 1. Compile the source code into an executable named 'Test'
+g++  g++ Experiment/*.cpp Deflate/*.cpp -I lib -o Test
+
+# 2. Run the program
+./Test
+```
+
 ## Project Report
 
 *Read this in [Vietnamese](README-vi.md).*
