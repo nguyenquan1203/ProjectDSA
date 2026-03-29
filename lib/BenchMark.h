@@ -20,7 +20,7 @@ struct BenchMark
     size_t compressedSize;  // Bytes
     long long compTime;     // ms
     long long decompTime;   // ms
-    long long peekRamUsage; // bytes
+    long long peakRamUsage; // bytes
     bool isPassed;
 
     double getSaving() const
